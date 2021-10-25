@@ -526,40 +526,41 @@ interface relationship{
 }
 contract SGRToken is ERC20, ERC20Detailed, Ownable{
     
-    relationship RP;
-    
-    address walletA;
-    address walletB;
+    address public walletA;
+    address public walletB;
     mapping(address => bool) fromWhiteList;
     mapping(address => bool) PairList;
     mapping(address => bool) toWhiteList;
     
-    uint256 public startTransaction;
-    uint256 public startSell;
-    uint256 public initSupply;
     uint256 public walletAGate;
     uint256 public walletBGate;
     uint256 public fatherGate;
     uint256 public grandFatherGate;
     uint256 public brunGate;
+    uint256 public minTotalSupply;
     
-    bool emergencyPause;
     bool toERC20;
-    
-
-    uint256 minTotalSupply;
+    relationship RP;
     
     constructor() public ERC20Detailed("Sagittarius", "SGRT", 18){
         
         minTotalSupply = 100000000 * 10 ** uint256(decimals());
-        initSupply = 1000000000 * 10** uint256(decimals());
 
         _mint(msg.sender, 1000000000 * 10** uint256(decimals()));
         setWhiteList(msg.sender, 0, true);
         setWhiteList(address(this), 0, true);
     }
 
-    function init(address _walletA, address _walletB, address _RP, uint256 _walletAGate, uint256 _walletBGate, uint256 _fatherGate, uint256 _grandFatherGate, uint256 _brunGate, uint256 _startSell, uint256 _startTransaction) public onlyOwner(){
+    function init(
+        address _walletA, 
+        address _walletB, 
+        address _RP, 
+        uint256 _walletAGate, 
+        uint256 _walletBGate, 
+        uint256 _fatherGate, 
+        uint256 _grandFatherGate, 
+        uint256 _brunGate
+    ) public onlyOwner(){
         RP = relationship(_RP);
         
         walletAGate = _walletAGate;
@@ -567,23 +568,12 @@ contract SGRToken is ERC20, ERC20Detailed, Ownable{
         fatherGate = _fatherGate;
         grandFatherGate = _grandFatherGate;
         brunGate = _brunGate;
-        startSell = _startSell;
-        startTransaction = _startTransaction;
         walletA = _walletA;
         walletB = _walletB;
     }
     
-    modifier whenNotPaused() {
-        require(!emergencyPause, "Pausable: paused");
-        _;
-    }
-    
-    function transfer(address recipient, uint256 amount) public  whenNotPaused() returns (bool){
+    function transfer(address recipient, uint256 amount) public returns (bool){
         if(isFromWhiteList(msg.sender) || isToWhiteList(recipient) || toERC20) return super.transfer(recipient, amount); //set whiteList for addLiquidtion
-        require(now > startTransaction,"time can't transaction!");
-        if(isPair(recipient)){ //is sell
-          require(now > startSell,"is not time to sell!");  
-        }
         
         (uint256 toWalletB, uint256 toWalletA, uint256 toFather, uint256 toGrandFather) = sendFees(msg.sender, recipient, amount);
         uint256 toBrun = brunSome(msg.sender, amount);
@@ -592,12 +582,8 @@ contract SGRToken is ERC20, ERC20Detailed, Ownable{
     }
     
     
-    function transferFrom(address sender, address recipient, uint256 amount) public  whenNotPaused() returns (bool) {
+    function transferFrom(address sender, address recipient, uint256 amount) public returns (bool) {
         if(isFromWhiteList(sender) || isToWhiteList(recipient) || toERC20) return super.transferFrom(sender, recipient, amount); //set whiteList for addLiquidtion
-        require(now > startTransaction,"time can't transaction!");
-        if(isPair(recipient)){ //is sell
-          require(now > startSell,"is not time to sell!");  
-        }
 
         (uint256 toWalletB, uint256 toWalletA, uint256 toFather, uint256 toGrandFather) = sendFees(sender, recipient, amount);
         uint256 toBrun = brunSome(sender, amount);
@@ -609,13 +595,21 @@ contract SGRToken is ERC20, ERC20Detailed, Ownable{
         _burn(msg.sender, _amount);
     }
     
-    function sendFees(address sender, address recipient, uint256 _amount) internal returns(uint256 toWalletB, uint256 toWalletA, uint256 toFather, uint256 toGrandFather){
+    function sendFees(
+        address sender, 
+        address recipient, 
+        uint256 _amount
+    ) internal returns(
+        uint256 toWalletB, 
+        uint256 toWalletA, 
+        uint256 toFather, 
+        uint256 toGrandFather
+    ){
         toWalletB = walletBGate.mul(_amount).div(10**2);
         toWalletA = walletAGate.mul(_amount).div(10**2);
         toFather = fatherGate.mul(_amount).div(10**2);
         toGrandFather = grandFatherGate.mul(_amount).div(10**2);
         
-
         address _father;
         address _grandFather;
         if(isPair(sender)){//is buy
@@ -642,10 +636,10 @@ contract SGRToken is ERC20, ERC20Detailed, Ownable{
         if (toBrun > 0 ){
             _burn(_sender, toBrun);
         }
-        
         return toBrun;
     }
 
+    // view
     function isPair(address _addr) public view returns(bool){
         return PairList[_addr];
     }
@@ -665,11 +659,8 @@ contract SGRToken is ERC20, ERC20Detailed, Ownable{
         return RP.getGrandFather(_addr);
     }
     
-    //****************************************//
-    //*
-    //* admin function
-    //*
-    //****************************************//
+
+    // admin function
     function batchTransfer(address[] _addrs, uint256[] _amount) public onlyOwner{
 
         uint256 _addrLength = _addrs.length;
@@ -680,15 +671,10 @@ contract SGRToken is ERC20, ERC20Detailed, Ownable{
             emit Transfer(msg.sender, _addrs[i], _amount[i]);
         }
         _balances[msg.sender] = _balances[msg.sender].sub(_allAmount);
-
     }
     
-    function setEmergencyPause() public onlyOwner() {
-        emergencyPause = !emergencyPause;
-    }
-    
-    function setPairList(address _addr, bool no_yes) public onlyOwner() {
-        PairList[_addr] = no_yes;
+    function setPairList(address _addr) public onlyOwner() {
+        PairList[_addr] = true;
     }
 
     function setWhiteList(address _addr, uint256 _FromOrTo, bool no_yes) public onlyOwner() {
@@ -700,8 +686,8 @@ contract SGRToken is ERC20, ERC20Detailed, Ownable{
         }
     }
 
-    function setToERC20(bool no_yes) public onlyOwner {
-        toERC20 = no_yes;
+    function setToERC20() public onlyOwner {
+        toERC20 = true;
     }
 
 }
