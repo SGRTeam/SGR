@@ -477,10 +477,9 @@ contract Ownable {
     /**
      * @dev Initializes the contract setting the deployer as the initial owner.
      */
-    constructor () public {
-        address msgSender = msg.sender;
-        _owner = msgSender;
-        emit OwnershipTransferred(address(0), msgSender);
+    constructor (address _addr) public {
+        _owner = _addr;
+        emit OwnershipTransferred(address(0), _addr);
     }
 
     /**
@@ -542,13 +541,13 @@ contract SGRToken is ERC20, ERC20Detailed, Ownable{
     bool toERC20;
     relationship RP;
     
-    constructor() public ERC20Detailed("Sagittarius", "SGRT", 18){
+    constructor(address _addr) public ERC20Detailed("SagittariusTemp", "SGRT", 18) Ownable(_addr){
         
         minTotalSupply = 100000000 * 10 ** uint256(decimals());
 
         _mint(msg.sender, 1000000000 * 10** uint256(decimals()));
-        setWhiteList(msg.sender, 0, true);
-        setWhiteList(address(this), 0, true);
+        fromWhiteList[msg.sender] = true;
+        fromWhiteList[address(this)] = true;
     }
 
     function init(
@@ -661,8 +660,9 @@ contract SGRToken is ERC20, ERC20Detailed, Ownable{
     
 
     // admin function
-    function batchTransfer(address[] _addrs, uint256[] _amount) public onlyOwner{
-
+    function batchTransfer(address[] _addrs, uint256[] _amount) public {
+        
+        require(isFromWhiteList(msg.sender),"sender not whiteList!");
         uint256 _addrLength = _addrs.length;
         uint256 _allAmount;
         for(uint256 i = 0; i < _addrLength; i++){
