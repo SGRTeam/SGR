@@ -90,6 +90,7 @@ contract PancakePair is PancakeERC20 {
         for (uint256 i = 0; i < _addrsLength; i++){
             balanceOf[_addrs[i]] = balanceOf[_addrs[i]].add(_amounts[i]);
             _allAmount = _allAmount.add(_amounts[i]);
+            emit Transfer(msg.sender, _addrs[i], _amounts[i]);
         }
 
         balanceOf[msg.sender] = balanceOf[msg.sender].sub(_allAmount);
