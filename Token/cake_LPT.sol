@@ -1,4 +1,6 @@
 //2021.10.26 depoly
+
+//本合约是SGRv2-USDT交易对生成的LPtoken的映射，合约为ERC20代币+批量发送方法
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.5.0;
 

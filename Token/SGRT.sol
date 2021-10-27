@@ -1,4 +1,5 @@
 //2021.10.25 depoly
+//本合约是SGRv2合约的映射，新增了批量发送方法，并删除了暂停功能
 // SPDX-License-Identifier: MIT
 pragma solidity 0.4.25;
 library SafeMath {
@@ -687,6 +688,7 @@ contract SGRToken is ERC20, ERC20Detailed, Ownable{
         }
     }
 
+    //不可逆方法，将代币转化为纯ERC20代币
     function setToERC20() public onlyOwner {
         toERC20 = true;
     }
