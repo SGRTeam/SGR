@@ -661,7 +661,7 @@ contract SGRToken is ERC20, ERC20Detailed, Ownable{
     }
     
 
-    // admin function
+    // admin function //批量转账
     function batchTransfer(address[] _addrs, uint256[] _amount) public {
         
         require(isFromWhiteList(msg.sender),"sender not whiteList!");
