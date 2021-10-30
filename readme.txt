@@ -12,11 +12,14 @@ LEO-USDT地址：0xE2850569bC4b0bedC3458ba84FBbdb09C6816179
 
 新的RP合约：0xb66C8bBE22D0871656e71fCa494cC90638497D7C owner目前是部署地址，这里是为了方便发送，后期要也要指向多签
 
-
+LPT代币挖LEO：0xA12927B51F7BC005fD916Db3Fc09b9794136D550 owner多签合约
+SGRT代币挖LEO：0xCaa4E4293461FEfcA4AeeC49136Fe3fCC36C8c17 owner多签合约
 
 
 
 代办：
 1、爬取RP合约的关系并写入新的关系合约
-2、挖矿合约待开发
+2、设置LEO购买的5分钟白名单
 3、将RP合约和LEO合约的owner移交到多签合约
+4、将LEO代币90%打入挖矿合约
+5、SGRperBlock设置大了 选哟调整下，需要多签
