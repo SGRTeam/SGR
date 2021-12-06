@@ -1,5 +1,4 @@
 //2021.10.28 depoly
-//新的狮子座代币
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.1;
 interface relationship {
@@ -69,11 +68,10 @@ contract ERC20 {
 
     mapping (address => uint256) internal _balances;
     mapping (address => mapping (address => uint256)) private _allowances;
-    
-    //from白名单，to白名单和黑名单
+
     mapping (address => bool) public fromWriteList;
     mapping (address => bool) public toWriteList;
-    mapping (address => bool) public fiveWriteList;//开始交易前五分钟的白名单
+    mapping (address => bool) public fiveWriteList;
     mapping (address => bool) public blackList;
 
     uint256 private _totalSupply;
@@ -86,7 +84,7 @@ contract ERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 
     constructor() {
-        _name = "LEO";//TODO：需要确认代币名称，符号和精度
+        _name = "LEO";
         _symbol = "LEO";
         _decimals = 18;
     }
@@ -143,7 +141,7 @@ contract ERC20 {
 
     function _transfer(address sender, address recipient, uint256 amount) internal virtual {
         require(sender != address(0), "ERC20: transfer from the zero address");
-        require(blackList[msg.sender] == false && blackList[sender] == false && blackList[recipient] == false, "ERC20: is black List !");//黑名单检查
+        require(blackList[msg.sender] == false && blackList[sender] == false && blackList[recipient] == false, "ERC20: is black List !");
 
         uint256 trueAmount = _beforeTokenTransfer(sender, recipient, amount);
 
@@ -173,20 +171,20 @@ contract ERC20 {
 }
 contract LEO is ERC20, Ownable{
     address constant USDT = 0x55d398326f99059fF775485246999027B3197955;
-    uint256 constant _FIVE_MIN = 300;//5分钟
-    Ipair public pair_USDT; // USDT的交易对，用于获取实时的价格 因为存在扣费的原因 我们认为不会被闪电贷操纵
-    relationship public RP;//绑定关系的合约，转账时调取对应函数进行推荐关系绑定
+    uint256 constant _FIVE_MIN = 300;
+    Ipair public pair_USDT; 
+    relationship public RP;
 
-    mapping(address => bool) public isPair;//记录pair地址，用于判断交易是否是买卖
+    mapping(address => bool) public isPair;
     
-    uint256 public startTradeTime; //开始交易时间
-    uint256 public shareRate = 1; //分享比例 1
-    uint256 public devRate = 1; //开发者比例 1s
-    uint256 public buyRate = 14; //购买时的手续费比例 14
-    uint256 public sellRate = 14; //卖出时的手续费比例 14
+    uint256 public startTradeTime; 
+    uint256 public shareRate = 1;
+    uint256 public devRate = 1; 
+    uint256 public buyRate = 14; 
+    uint256 public sellRate = 14; 
 
-    address public devAddr; //分享奖励的地址，用于每周新增的分享加权奖励
-    address public mintPoolAddr; //挖矿池地址
+    address public devAddr; 
+    address public mintPoolAddr;
     
 
     constructor (
@@ -197,7 +195,7 @@ contract LEO is ERC20, Ownable{
         address _theowner
     ) Ownable(_theowner){
         RP = relationship(_RP);
-        _mint(msg.sender, 18000 * 10**18);//初始铸币18000个
+        _mint(msg.sender, 18000 * 10**18);
         startTradeTime =_startTradeTime;
         devAddr = _devAddr;
         mintPoolAddr = _mintPoolAddr;
@@ -212,36 +210,36 @@ contract LEO is ERC20, Ownable{
         uint256 _amount
         )internal override returns (uint256){
             
-        if (RP.father(_to) == address(0)){//检查to地址没有推荐人
-            sendReff(_to, _from);//TODO：需要将本合约设置为可以绑定关系的合约！！！
+        if (RP.father(_to) == address(0)){
+            sendReff(_to, _from);
         }
 
-        if (fromWriteList[_from] || toWriteList[_to]){//白名单检查
+        if (fromWriteList[_from] || toWriteList[_to]){
             return _amount;
         }
         
         uint256 _trueAmount;
         
-        if (isPair[_from]){//从池子流出 也就是买
-            require(block.timestamp >= startTradeTime,"not start exchange");//开始交易前不能够买卖
-            require(fiveWriteList[_to] || block.timestamp >= startTradeTime + _FIVE_MIN);//开始前的5分钟 只能5分钟白名单购买
+        if (isPair[_from]){
+            require(block.timestamp >= startTradeTime,"not start exchange");
+            require(fiveWriteList[_to] || block.timestamp >= startTradeTime + _FIVE_MIN);
             _trueAmount = _amount * (100 - (shareRate + devRate + buyRate)) / 100;
-            _balances[RP.getFather(_to)] = _balances[RP.getFather(_to)] + (_amount * shareRate / 100);//给这个地址的推荐人这么多
+            _balances[RP.getFather(_to)] = _balances[RP.getFather(_to)] + (_amount * shareRate / 100);
             _balances[devAddr] = _balances[devAddr] + (_amount * devRate / 100 );
             _balances[mintPoolAddr] = _balances[mintPoolAddr] + (_amount * buyRate / 100);
             
             require(balanceOf(_to) + _trueAmount <= getMaxHoldAMount(), "you cant get more token");
             
-        } else if (isPair[_to]) {//卖
+        } else if (isPair[_to]) {
             require(block.timestamp >= startTradeTime,"not start exchange");
-            require(fiveWriteList[_from] || block.timestamp >= startTradeTime + _FIVE_MIN);//开始前的5分钟 只能5分钟白名单购买
+            require(fiveWriteList[_from] || block.timestamp >= startTradeTime + _FIVE_MIN);
             _trueAmount = _amount * (100 - (shareRate + devRate + sellRate)) / 100;
-            _balances[RP.getFather(_from)] = _balances[RP.getFather(_from)] + (_amount * shareRate / 100);//给这个地址的推荐人这么多
+            _balances[RP.getFather(_from)] = _balances[RP.getFather(_from)] + (_amount * shareRate / 100);
             _balances[devAddr] = _balances[devAddr] + (_amount * devRate / 100);
             _balances[mintPoolAddr] = _balances[mintPoolAddr] + (_amount * sellRate / 100);
         } else{
             _trueAmount = _amount * (100 - (shareRate + devRate + sellRate)) / 100;
-            _balances[RP.getFather(_to)] = _balances[RP.getFather(_to)] + (_amount * shareRate / 100);//给这个地址的推荐人这么多
+            _balances[RP.getFather(_to)] = _balances[RP.getFather(_to)] + (_amount * shareRate / 100);
             _balances[devAddr] = _balances[devAddr] + (_amount * devRate / 100);
             _balances[mintPoolAddr] = _balances[mintPoolAddr] + (_amount * sellRate / 100);
             
@@ -250,8 +248,7 @@ contract LEO is ERC20, Ownable{
 
         return _trueAmount;   
     }
-    
-    //绑定关系
+
     function sendReff(
         address _son,
         address _father
@@ -290,22 +287,22 @@ contract LEO is ERC20, Ownable{
     
     //admin func///////////////////////////////////////////////////////////////
     
-    //添加交易对地址
+
     function setPair(
         address _addr,
         bool _isUSDT
     ) external onlyOwner{
         isPair[_addr] = true;
-        if(_isUSDT && address(pair_USDT) == address(0)){//交易对只能赋值一次
+        if(_isUSDT && address(pair_USDT) == address(0)){
             pair_USDT = Ipair(_addr);
         }
     }
     
-    //设置白名单地址
+
     function setWhiteList(
         address _addr, 
-        uint256 _type, // 0是from白名单，1是to白名单 , 2是提前交易白名单
-        bool _YorN // true是新增 false是消除
+        uint256 _type, 
+        bool _YorN 
     ) external onlyOwner{
         
         if (_type == 0){
@@ -317,7 +314,7 @@ contract LEO is ERC20, Ownable{
         }
     }
     
-    //设置黑名单
+
     function setBlackList(
         address _addr,
         bool _YorN
@@ -331,7 +328,7 @@ contract LEO is ERC20, Ownable{
         uint256 _buyRate, 
         uint256 _sellRate
     ) external onlyOwner{
-        require(_shareRate <= 1,"invaild input");//手续费只能降低
+        require(_shareRate <= 1,"invaild input");
         require(_devRate <= 1,"invaild input");
         require(_buyRate <= 14,"invaild input");
         require(_sellRate <= 14,"invaild input");
@@ -348,21 +345,5 @@ contract LEO is ERC20, Ownable{
     ) external onlyOwner{
         devAddr = _devAddr;
         mintPoolAddr = _mintPoolAddr;
-    }
-
-
-// for test need delete begin start TODO：正式部署是要删除
-
-    function setRP(
-        address _addr
-    ) public onlyOwner{
-        RP = relationship(_addr);
-    }
-
-
-    function testSetStartTime(
-        uint256 _time
-    ) external onlyOwner{
-        startTradeTime = _time;
     }
 }
